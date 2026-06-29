@@ -1,113 +1,86 @@
-const errorObjects = [
-  {
-    ok: false,
-    errors: [
-      {
-        field: "root",
-        message: "Данные должны быть объектом",
-      },
-    ],
-  },
-  {
-    ok: false,
-    errors: [
-      {
-        field: "title",
-        message: "Название должно быть строкой",
-      },
-    ],
-  },
-  {
-    ok: false,
-    errors: [
-      {
-        field: "title",
-        message: "Название не должно быть пустым",
-      },
-    ],
-  },
-  {
-    ok: false,
-    errors: [
-      {
-        field: "priority",
-        message: "Приоритет должен быть числом",
-      },
-    ],
-  },
-  {
-    ok: false,
-    errors: [
-      {
-        field: "priority",
-        message: "Приоритет должен быть конечным числом",
-      },
-    ],
-  },
-  {
-    ok: false,
-    errors: [
-      {
-        field: "priority",
-        message: "Приоритет должен быть целым числом",
-      },
-    ],
-  },
-  {
-    ok: false,
-    errors: [
-      {
-        field: "priority",
-        message: "Приоритет должен быть числом от 1 до 5",
-      },
-    ],
-  },
-  {
-    ok: false,
-    errors: [
-      {
-        field: "estimateHours",
-        message: "Оценка времени должна быть конечным неотрицательным числом",
-      },
-    ],
-  },
-];
-
 export function normalizeTaskDraft(raw) {
   const isObject =
-    typeof raw === "object" && raw !== null && !Array.isArray(raw);
-  if (!isObject) return errorObjects[0];
+    typeof raw === "object" &&
+    raw !== null &&
+    !Array.isArray(raw);
 
-  const titleIsString = typeof raw.title === "string";
-  if (!titleIsString) return errorObjects[1];
+  if (!isObject) {
+    return {
+      ok: false,
+      errors: [
+        {
+          field: "root",
+          message: "Данные должны быть объектом",
+        },
+      ],
+    };
+  }
 
-  const normalizedTitle = raw.title.trim();
-  if (!normalizedTitle) return errorObjects[2];
+  const errors = [];
 
-  const priorityIsNumber = typeof raw.priority === "number";
-  if (!priorityIsNumber) return errorObjects[3];
+  let normalizedTitle;
 
-  const priorityIsFinite = Number.isFinite(raw.priority);
-  if (!priorityIsFinite) return errorObjects[4];
+  if (typeof raw.title !== "string") {
+    errors.push({
+      field: "title",
+      message: "Название должно быть строкой",
+    });
+  } else {
+    normalizedTitle = raw.title.trim();
 
-  const priorityIsInteger = Number.isInteger(raw.priority);
-  if (!priorityIsInteger) return errorObjects[5];
+    if (!normalizedTitle) {
+      errors.push({
+        field: "title",
+        message: "Название не должно быть пустым",
+      });
+    }
+  }
 
-  const priorityIsInRange = raw.priority >= 1 && raw.priority <= 5;
-  if (!priorityIsInRange) return errorObjects[6];
+  if (typeof raw.priority !== "number") {
+    errors.push({
+      field: "priority",
+      message: "Приоритет должен быть числом",
+    });
+  } else if (!Number.isFinite(raw.priority)) {
+    errors.push({
+      field: "priority",
+      message: "Приоритет должен быть конечным числом",
+    });
+  } else if (!Number.isInteger(raw.priority)) {
+    errors.push({
+      field: "priority",
+      message: "Приоритет должен быть целым числом",
+    });
+  } else if (raw.priority < 1 || raw.priority > 5) {
+    errors.push({
+      field: "priority",
+      message: "Приоритет должен быть числом от 1 до 5",
+    });
+  }
 
   let normalizedEstimateHours;
 
   if (raw.estimateHours === undefined || raw.estimateHours === null) {
     normalizedEstimateHours = null;
+  } else if (
+    !Number.isFinite(raw.estimateHours) ||
+    raw.estimateHours < 0
+  ) {
+    errors.push({
+      field: "estimateHours",
+      message: "Оценка времени должна быть конечным неотрицательным числом",
+    });
   } else {
-    const estimateHoursIsValid =
-      Number.isFinite(raw.estimateHours) && raw.estimateHours >= 0;
-
-    if (!estimateHoursIsValid) return errorObjects[7];
-
     normalizedEstimateHours = raw.estimateHours;
   }
+
+  if (errors.length > 0) {
+    return {
+      ok: false,
+      errors,
+    };
+  }
+
   return {
     ok: true,
     value: {
